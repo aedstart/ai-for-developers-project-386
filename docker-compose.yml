@@ -27,6 +27,15 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    develop:
+      watch:
+        - action: rebuild
+          path: ./backend
+          target: /app
+          ignore:
+            - node_modules/
+            - dist/
+            - prisma/migrations/
 
   frontend:
     build: ./frontend
@@ -36,6 +45,14 @@ services:
       - "3000:3000"
     depends_on:
       - backend
+    develop:
+      watch:
+        - action: rebuild
+          path: ./frontend
+          target: /app
+          ignore:
+            - node_modules/
+            - dist/
 
 volumes:
   postgres_data:
