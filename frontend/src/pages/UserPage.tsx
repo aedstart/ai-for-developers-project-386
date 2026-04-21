@@ -69,18 +69,14 @@ export default function UserPage() {
 
   const loadSlots = async () => {
     if (!selectedEventType) return;
-    
+
     setLoading(true);
     try {
       const response = await bookingsApi.getSlots(selectedEventType);
-      // Filter slots for selected date + next 14 days
+      // Filter slots only for selected date
       if (selectedDate) {
-        const filteredSlots = response.data.filter(slot => {
-          const slotDate = slot.date;
-          // Show slots from selected date onwards, within 14 days
-          const daysDiff = Math.floor((new Date(slotDate).getTime() - selectedDate.getTime()) / (1000 * 60 * 60 * 24));
-          return daysDiff >= 0 && daysDiff < 14;
-        });
+        const selectedDateStr = format(selectedDate, 'yyyy-MM-dd');
+        const filteredSlots = response.data.filter(slot => slot.date === selectedDateStr);
         setSlots(filteredSlots);
       } else {
         setSlots(response.data);
@@ -255,7 +251,7 @@ export default function UserPage() {
       {selectedDate && (
         <div className="card">
           <div className="card-title">
-            Доступные слоты на {format(selectedDate, 'dd.MM.yyyy')} и следующие 14 дней
+            Доступные слоты на {format(selectedDate, 'dd.MM.yyyy')}
           </div>
           
           {loading ? (
@@ -272,9 +268,6 @@ export default function UserPage() {
                   } ${!slot.available ? 'unavailable' : ''}`}
                   onClick={() => handleSlotClick(slot)}
                 >
-                  <div className="slot-date">
-                    {slot.date.split('-')[2]}.{slot.date.split('-')[1]}
-                  </div>
                   <div className="slot-time">{slot.time}</div>
                 </div>
               ))}
