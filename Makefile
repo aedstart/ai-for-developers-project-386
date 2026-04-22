@@ -19,10 +19,3 @@ code-run-compose: code-stop
 		-e POSTGRES_DB=booking_service \
 		postgres:16-alpine
 	while ! docker exec $(DB_CONTAINER) pg_isready -U postgres -q; do sleep 1; done
-	docker rm -f $(IMAGE_NAME) >/dev/null 2>&1 || true
-	docker run --rm \
-		--name $(IMAGE_NAME) \
-		--network container:$${HOSTNAME} \
-		-e PORT=8080 \
-		-e DATABASE_URL=postgresql://postgres:postgres@localhost:5432/booking_service?schema=public \
-		$(IMAGE_NAME):local
