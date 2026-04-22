@@ -19,6 +19,27 @@ import {
 } from 'date-fns';
 import { ru } from 'date-fns/locale';
 
+/**
+ * Format a wall-clock datetime string from the API ("YYYY-MM-DDTHH:MM:SS" or with Z suffix)
+ * as a display string without any timezone conversion.
+ * The API stores times as wall-clock UTC, so we read UTC parts directly.
+ */
+function formatWallClock(isoStr: string, fmt: 'datetime' | 'time' | 'date'): string {
+  // Strip Z so we can parse as UTC explicitly
+  const normalized = isoStr.replace('Z', '') + 'Z';
+  const d = new Date(normalized);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const day = pad(d.getUTCDate());
+  const month = pad(d.getUTCMonth() + 1);
+  const year = d.getUTCFullYear();
+  const hours = pad(d.getUTCHours());
+  const minutes = pad(d.getUTCMinutes());
+
+  if (fmt === 'datetime') return `${day}.${month}.${year} ${hours}:${minutes}`;
+  if (fmt === 'time') return `${hours}:${minutes}`;
+  return `${day}.${month}.${year}`;
+}
+
 export default function OwnerPage() {
   // State
   const [eventTypes, setEventTypes] = useState<EventType[]>([]);
@@ -393,8 +414,8 @@ export default function OwnerPage() {
                 <div className="list-item-info">
                   <h4>{booking.eventType.name}</h4>
                   <p>
-                    {format(new Date(booking.startTime), 'dd.MM.yyyy HH:mm')} - 
-                    {format(new Date(booking.endTime), 'HH:mm')} | 
+                    {formatWallClock(booking.startTime, 'datetime')} - 
+                    {formatWallClock(booking.endTime, 'time')} | 
                     Клиент: {booking.userName} |
                     Статус: <span className={`status-badge ${booking.status === 'active' ? 'status-active' : 'status-cancelled'}`}>
                       {booking.status === 'active' ? 'Активно' : 'Отменено'}
@@ -544,7 +565,7 @@ export default function OwnerPage() {
             </div>
             
             <div className="info-block">
-              <p><strong>Дата:</strong> {format(new Date(editingBooking.startTime), 'dd.MM.yyyy HH:mm')}</p>
+              <p><strong>Дата:</strong> {formatWallClock(editingBooking.startTime, 'datetime')}</p>
               <p><strong>Тип:</strong> {editingBooking.eventType.name}</p>
             </div>
             

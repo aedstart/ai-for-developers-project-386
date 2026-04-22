@@ -3,6 +3,37 @@ import prisma from '../prisma';
 
 const router = Router();
 
+// Format a Date as UTC "wall clock" string: "YYYY-MM-DDTHH:MM:SS" (no timezone offset)
+// We use UTC methods because we treat UTC timestamps as wall-clock time throughout the app.
+function toWallClockDateTimeString(date: Date): string {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return (
+    date.getUTCFullYear() + '-' +
+    pad(date.getUTCMonth() + 1) + '-' +
+    pad(date.getUTCDate()) + 'T' +
+    pad(date.getUTCHours()) + ':' +
+    pad(date.getUTCMinutes()) + ':' +
+    pad(date.getUTCSeconds())
+  );
+}
+
+// Format a Date as UTC date string: "YYYY-MM-DD"
+function toWallClockDateString(date: Date): string {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return (
+    date.getUTCFullYear() + '-' +
+    pad(date.getUTCMonth() + 1) + '-' +
+    pad(date.getUTCDate())
+  );
+}
+
+// Parse a "YYYY-MM-DD" or "YYYY-MM-DDTHH:MM:SS" string as UTC (treat the wall-clock time as UTC).
+// This ensures 09:00 stays 09:00 regardless of server timezone.
+function parseWallClockDateTime(str: string): Date {
+  const normalized = str.includes('T') ? str.replace(/Z$/, '') + 'Z' : str + 'T00:00:00Z';
+  return new Date(normalized);
+}
+
 // Get available slots for next 14 days
 router.get('/slots', async (req, res) => {
   try {
@@ -27,12 +58,17 @@ router.get('/slots', async (req, res) => {
     const [startH, startM] = startHour.split(':').map(Number);
     const [endH, endM] = endHour.split(':').map(Number);
 
-    // Get available days for next 14 days
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
+    // Get available days for next 14 days (use UTC midnight — wall-clock = UTC convention)
+    const nowUtcMs = Date.now();
+    const todayUtc = new Date(nowUtcMs);
+    // Zero out to UTC midnight
+    const todayMidnightUTC = new Date(Date.UTC(
+      todayUtc.getUTCFullYear(), todayUtc.getUTCMonth(), todayUtc.getUTCDate()
+    ));
+    const today = todayMidnightUTC;
+
     const endDate = new Date(today);
-    endDate.setDate(endDate.getDate() + 14);
+    endDate.setUTCDate(endDate.getUTCDate() + 14);
 
     const availableDays = await prisma.availableDay.findMany({
       where: {
@@ -65,22 +101,24 @@ router.get('/slots', async (req, res) => {
     }> = [];
 
     for (const day of availableDays) {
-      const dayStart = new Date(day.date);
-      dayStart.setHours(startH, startM, 0, 0);
+      // day.date is a @db.Date — Prisma stores it as UTC midnight, use UTC methods to read it
+      const dateStr = toWallClockDateString(day.date);
+      const [yyyy, mm, dd] = dateStr.split('-').map(Number);
 
-      const dayEnd = new Date(day.date);
-      dayEnd.setHours(endH, endM, 0, 0);
+      // Build slot boundaries as UTC timestamps (wall-clock = UTC throughout the app)
+      const dayStart = new Date(Date.UTC(yyyy, mm - 1, dd, startH, startM, 0));
+      const dayEnd   = new Date(Date.UTC(yyyy, mm - 1, dd, endH,   endM,   0));
 
       let currentSlot = new Date(dayStart);
 
       while (currentSlot.getTime() + eventType.duration * 60000 <= dayEnd.getTime()) {
         const slotEnd = new Date(currentSlot.getTime() + eventType.duration * 60000);
-        
+
         // Check if slot conflicts with existing booking
-        const hasConflict = existingBookings.some(booking => {
+        // Bookings are stored as UTC timestamps (wall-clock = UTC)
+        const hasConflict = existingBookings.some((booking: { startTime: Date; endTime: Date }) => {
           const bookingStart = new Date(booking.startTime);
-          const bookingEnd = new Date(booking.endTime);
-          
+          const bookingEnd   = new Date(booking.endTime);
           return (
             (currentSlot >= bookingStart && currentSlot < bookingEnd) ||
             (slotEnd > bookingStart && slotEnd <= bookingEnd) ||
@@ -88,15 +126,18 @@ router.get('/slots', async (req, res) => {
           );
         });
 
-        // Check if slot is in the past
-        const now = new Date();
-        const isInPast = currentSlot < now;
+        // Check if slot is in the past — compare wall-clock: now as UTC wall-clock
+        const nowUtc = new Date();
+        const isInPast = currentSlot < nowUtc;
+
+        const pad = (n: number) => String(n).padStart(2, '0');
+        const timeStr = `${pad(currentSlot.getUTCHours())}:${pad(currentSlot.getUTCMinutes())}`;
 
         slots.push({
-          date: day.date.toISOString().split('T')[0],
-          time: currentSlot.toTimeString().slice(0, 5),
-          startTime: currentSlot.toISOString(),
-          endTime: slotEnd.toISOString(),
+          date: dateStr,
+          time: timeStr,
+          startTime: toWallClockDateTimeString(currentSlot),
+          endTime: toWallClockDateTimeString(slotEnd),
           available: !hasConflict && !isInPast,
         });
 
@@ -161,7 +202,8 @@ router.post('/', async (req, res) => {
       return res.status(404).json({ error: 'Event type not found' });
     }
 
-    const startDateTime = new Date(startTime);
+    // Parse as wall-clock UTC — "YYYY-MM-DDTHH:MM:SS" treated as UTC (no timezone shift)
+    const startDateTime = parseWallClockDateTime(startTime);
     const endDateTime = new Date(startDateTime.getTime() + eventType.duration * 60000);
 
     // Check for conflicts
@@ -201,9 +243,11 @@ router.post('/', async (req, res) => {
       return res.status(409).json({ error: 'Time slot is already booked' });
     }
 
-    // Check if day is available
-    const dayDate = new Date(startDateTime);
-    dayDate.setHours(0, 0, 0, 0);
+    // Check if day is available — build UTC midnight of the wall-clock date
+    const y = startDateTime.getUTCFullYear();
+    const mo = startDateTime.getUTCMonth();
+    const d = startDateTime.getUTCDate();
+    const dayDate = new Date(Date.UTC(y, mo, d, 0, 0, 0));
 
     const availableDay = await prisma.availableDay.findUnique({
       where: { date: dayDate },

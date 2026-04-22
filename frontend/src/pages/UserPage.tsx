@@ -284,7 +284,7 @@ export default function UserPage() {
             </div>
             
             <div className="info-block">
-              <p><strong>Дата:</strong> {format(new Date(selectedSlot.date), 'dd.MM.yyyy')}</p>
+              <p><strong>Дата:</strong> {selectedSlot.date.split('-').reverse().join('.')}</p>
               <p><strong>Время:</strong> {selectedSlot.time}</p>
               <p><strong>Длительность:</strong> {eventTypes.find(t => t.id === selectedEventType)?.duration} мин</p>
             </div>

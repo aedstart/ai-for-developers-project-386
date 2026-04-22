@@ -3,6 +3,11 @@ import prisma from '../prisma';
 
 const router = Router();
 
+// Parse "YYYY-MM-DD" as UTC midnight (wall-clock = UTC convention)
+function parseDateUTC(str: string): Date {
+  return new Date(str + 'T00:00:00Z');
+}
+
 // Get all available days
 router.get('/', async (req, res) => {
   try {
@@ -12,8 +17,8 @@ router.get('/', async (req, res) => {
     if (startDate && endDate) {
       where = {
         date: {
-          gte: new Date(startDate as string),
-          lte: new Date(endDate as string),
+          gte: parseDateUTC(startDate as string),
+          lte: parseDateUTC(endDate as string),
         },
       };
     }
@@ -37,8 +42,8 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'Date is required' });
     }
 
-    const dateObj = new Date(date);
-    dateObj.setHours(0, 0, 0, 0);
+    // Parse as UTC midnight (wall-clock = UTC convention, no local TZ shift)
+    const dateObj = parseDateUTC(date);
 
     // Upsert available day
     const availableDay = await prisma.availableDay.upsert({
