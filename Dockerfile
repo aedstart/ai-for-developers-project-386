@@ -20,6 +20,7 @@ RUN npx prisma generate
 COPY backend/ .
 RUN npm run build
 
+ENV PATH="/usr/lib/postgresql/15/bin:$PATH"
 ENV DATABASE_URL=postgresql://postgres:postgres@localhost:5432/booking_service?schema=public
 ENV PORT=8080
 ENV PGDATA=/var/lib/postgresql/data
