@@ -17,31 +17,32 @@ goto :help
 :watch
 echo 🚀 Запуск с автоматической пересборкой (watch mode)...
 echo Изменения в коде = автоматическая пересборка контейнера
-docker-compose up --build --watch
+set COMPOSE_FILE_WATCH_POLLING=1
+docker compose up --build --watch
 exit /b
 
 :dev
 echo 🚀 Запуск режима разработки (hot-reload, без пересборки)...
 echo Быстрый режим - изменения применяются мгновенно
-docker-compose -f docker-compose.dev.yml up --build
+docker compose -f docker-compose.dev.yml up --build
 exit /b
 
 :build
 echo 🔨 Ручная пересборка всех контейнеров...
-docker-compose up --build -d
+docker compose up --build -d
 echo ✅ Контейнеры пересобраны и запущены!
 exit /b
 
 :stop
 echo 🛑 Остановка всех контейнеров...
-docker-compose down
-docker-compose -f docker-compose.dev.yml down
+docker compose down
+docker compose -f docker-compose.dev.yml down
 echo ✅ Контейнеры остановлены!
 exit /b
 
 :logs
 echo 📋 Просмотр логов...
-docker-compose logs -f
+docker compose logs -f
 exit /b
 
 :help
