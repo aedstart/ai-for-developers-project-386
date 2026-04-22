@@ -21,6 +21,10 @@ app.use('/api/bookings', bookingRoutes);
 app.use('/api/working-hours', workingHoursRoutes);
 
 // Health check
+app.get('/', (req: Request, res: Response) => {
+  res.json({ status: 'ok' });
+});
+
 app.get('/health', (req: Request, res: Response) => {
   res.json({ status: 'ok' });
 });

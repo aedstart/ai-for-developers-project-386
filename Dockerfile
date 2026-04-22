@@ -1,7 +1,13 @@
-FROM node:20-alpine
+FROM node:20-bookworm-slim
 
-# Install dependencies for Prisma
-RUN apk add --no-cache openssl libc6-compat
+# Install PostgreSQL and required deps
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        postgresql \
+        postgresql-client \
+        openssl \
+        gosu && \
+    rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
@@ -14,9 +20,13 @@ RUN npx prisma generate
 COPY backend/ .
 RUN npm run build
 
-EXPOSE 3001
-
 ENV DATABASE_URL=postgresql://postgres:postgres@localhost:5432/booking_service?schema=public
-ENV PORT=3001
+ENV PORT=8080
+ENV PGDATA=/var/lib/postgresql/data
 
-CMD ["sh", "-c", "npx prisma db push --accept-data-loss && npm run db:seed && npm start"]
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+EXPOSE 8080
+
+CMD ["/entrypoint.sh"]
