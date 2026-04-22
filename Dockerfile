@@ -16,7 +16,7 @@ RUN npm run build
 
 EXPOSE 3001
 
-ENV DATABASE_URL=postgresql://postgres:postgres@localhost:5432
+ENV DATABASE_URL=postgresql://postgres:postgres@localhost:5432/booking_service?schema=public
 ENV PORT=3001
 
-CMD ["sh", "-c", "npx prisma migrate deploy && npm start"]
+CMD ["sh", "-c", "npx prisma db push --accept-data-loss && npm run db:seed && npm start"]
