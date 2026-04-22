@@ -20,6 +20,7 @@ export default function UserPage() {
   const [selectedEventType, setSelectedEventType] = useState<string>('');
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [slots, setSlots] = useState<Slot[]>([]);
+  const [allSlots, setAllSlots] = useState<Slot[]>([]);
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null);
   const [userName, setUserName] = useState('');
   const [showBookingForm, setShowBookingForm] = useState(false);
@@ -37,7 +38,14 @@ export default function UserPage() {
     loadAvailableDays();
   }, [currentMonth]);
 
-  // Load slots when event type and date are selected
+  // Load all slots when event type changes (for day availability check)
+  useEffect(() => {
+    if (selectedEventType) {
+      loadAllSlots();
+    }
+  }, [selectedEventType]);
+
+  // Filter slots for selected date
   useEffect(() => {
     if (selectedEventType && selectedDate) {
       loadSlots();
@@ -67,12 +75,23 @@ export default function UserPage() {
     }
   };
 
+  const loadAllSlots = async () => {
+    if (!selectedEventType) return;
+    try {
+      const response = await bookingsApi.getSlots(selectedEventType);
+      setAllSlots(response.data);
+    } catch (err) {
+      // ignore — calendar will just rely on isAvailable flag
+    }
+  };
+
   const loadSlots = async () => {
     if (!selectedEventType) return;
 
     setLoading(true);
     try {
       const response = await bookingsApi.getSlots(selectedEventType);
+      setAllSlots(response.data);
       // Filter slots only for selected date
       if (selectedDate) {
         const selectedDateStr = format(selectedDate, 'yyyy-MM-dd');
@@ -102,8 +121,9 @@ export default function UserPage() {
     
     const dayStr = format(date, 'yyyy-MM-dd');
     const day = availableDays.find(d => d.date.startsWith(dayStr));
+    const hasFreeSlots = allSlots.some(s => s.date === dayStr && s.available);
     
-    if (day?.isAvailable) {
+    if (day?.isAvailable && hasFreeSlots) {
       setSelectedDate(date);
       setSelectedSlot(null);
       setShowBookingForm(false);
@@ -215,6 +235,8 @@ export default function UserPage() {
             const day = availableDays.find(d => d.date.startsWith(dayStr));
             const isPast = isBefore(date, today);
             const isSelected = selectedDate && isSameDay(date, selectedDate);
+            const hasFreeSlots = allSlots.some(s => s.date === dayStr && s.available);
+            const isEffectivelyAvailable = day?.isAvailable && hasFreeSlots;
 
             return (
               <div
@@ -224,9 +246,9 @@ export default function UserPage() {
                 } ${
                   isPast ? 'past' : ''
                 } ${
-                  day?.isAvailable ? 'available' : ''
+                  isEffectivelyAvailable ? 'available' : ''
                 } ${
-                  !day?.isAvailable && !isPast ? 'unavailable' : ''
+                  !isEffectivelyAvailable && !isPast ? 'unavailable' : ''
                 }`}
                 onClick={() => handleDateClick(date)}
               >
