@@ -16,4 +16,7 @@ RUN npm run build
 
 EXPOSE 3001
 
+ENV DATABASE_URL=postgresql://postgres:postgres@localhost:5432
+ENV PORT=3001
+
 CMD ["sh", "-c", "npx prisma migrate deploy && npm start"]
