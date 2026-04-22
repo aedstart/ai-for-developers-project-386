@@ -46,7 +46,7 @@ export default function OwnerPage() {
   const [availableDays, setAvailableDays] = useState<AvailableDay[]>([]);
   const [workingHours, setWorkingHours] = useState<WorkingHours | null>(null);
   const [bookings, setBookings] = useState<Booking[]>([]);
-  
+
   // Form states
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [showEventTypeForm, setShowEventTypeForm] = useState(false);
@@ -54,7 +54,7 @@ export default function OwnerPage() {
   const [showWorkingHoursForm, setShowWorkingHoursForm] = useState(false);
   const [showEditBookingModal, setShowEditBookingModal] = useState(false);
   const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
-  
+
   // Form data
   const [eventTypeForm, setEventTypeForm] = useState({
     name: '',
@@ -69,7 +69,7 @@ export default function OwnerPage() {
     userName: '',
     status: 'active',
   });
-  
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -150,7 +150,7 @@ export default function OwnerPage() {
         date: dateStr,
         isAvailable,
       });
-      
+
       setSuccess(isAvailable ? 'День отмечен как доступный' : 'День отмечен как недоступный');
       loadAvailableDays();
       setTimeout(() => setSuccess(null), 2000);
@@ -162,7 +162,7 @@ export default function OwnerPage() {
   const handleCreateEventType = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    
+
     try {
       await eventTypesApi.create(eventTypeForm);
       setSuccess('Тип события создан');
@@ -180,9 +180,9 @@ export default function OwnerPage() {
   const handleUpdateEventType = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingEventType) return;
-    
+
     setLoading(true);
-    
+
     try {
       await eventTypesApi.update(editingEventType.id, eventTypeForm);
       setSuccess('Тип события обновлен');
@@ -200,7 +200,7 @@ export default function OwnerPage() {
 
   const handleDeleteEventType = async (id: string) => {
     if (!confirm('Удалить этот тип события?')) return;
-    
+
     try {
       await eventTypesApi.delete(id);
       setSuccess('Тип события удален');
@@ -213,7 +213,7 @@ export default function OwnerPage() {
 
   const handleSaveWorkingHours = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     try {
       await workingHoursApi.update(workingHoursForm);
       setSuccess('Рабочие часы обновлены');
@@ -227,7 +227,7 @@ export default function OwnerPage() {
 
   const handleCancelBooking = async (id: string) => {
     if (!confirm('Отменить это бронирование?')) return;
-    
+
     try {
       await bookingsApi.cancel(id);
       setSuccess('Бронирование отменено');
@@ -250,9 +250,9 @@ export default function OwnerPage() {
   const handleUpdateBooking = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingBooking) return;
-    
+
     setLoading(true);
-    
+
     try {
       await bookingsApi.update(editingBooking.id, editBookingForm);
       setSuccess('Бронирование обновлено');
@@ -318,7 +318,7 @@ export default function OwnerPage() {
             Добавить
           </button>
         </div>
-        
+
         <ul className="list">
           {eventTypes.map(type => (
             <li key={type.id} className="list-item">
@@ -355,7 +355,7 @@ export default function OwnerPage() {
             </button>
           </div>
         </div>
-        
+
         <p className="form-hint">
           Нажмите на день, чтобы отметить его как доступный/недоступный
         </p>
@@ -364,7 +364,7 @@ export default function OwnerPage() {
           {weekDays.map(day => (
             <div key={day} className="calendar-header">{day}</div>
           ))}
-          
+
           {days.map(date => {
             const dayStr = format(date, 'yyyy-MM-dd');
             const day = availableDays.find(d => d.date.startsWith(dayStr));
@@ -383,7 +383,7 @@ export default function OwnerPage() {
             );
           })}
         </div>
-        
+
         <div className="calendar-legend">
           <div className="legend-item">
             <div className="legend-color legend-available"></div>
@@ -404,7 +404,7 @@ export default function OwnerPage() {
             Обновить
           </button>
         </div>
-        
+
         <ul className="list">
           {bookings.length === 0 ? (
             <li className="list-item empty-state">Нет предстоящих встреч</li>
@@ -414,9 +414,10 @@ export default function OwnerPage() {
                 <div className="list-item-info">
                   <h4>{booking.eventType.name}</h4>
                   <p>
-                    {formatWallClock(booking.startTime, 'datetime')} - 
-                    {formatWallClock(booking.endTime, 'time')} | 
-                    Клиент: {booking.userName} |
+                    {formatWallClock(booking.startTime, 'datetime')} - {formatWallClock(booking.endTime, 'time')}
+                    <br/>
+                    Клиент: {booking.userName}
+                    <br/>
                     Статус: <span className={`status-badge ${booking.status === 'active' ? 'status-active' : 'status-cancelled'}`}>
                       {booking.status === 'active' ? 'Активно' : 'Отменено'}
                     </span>
@@ -445,7 +446,7 @@ export default function OwnerPage() {
             <div className="modal-header">
               <h3>{editingEventType ? 'Редактировать тип события' : 'Создать тип события'}</h3>
             </div>
-            
+
             <form onSubmit={editingEventType ? handleUpdateEventType : handleCreateEventType}>
               <div className="form-group">
                 <label>Название *</label>
@@ -457,7 +458,7 @@ export default function OwnerPage() {
                   required
                 />
               </div>
-              
+
               <div className="form-group">
                 <label>Описание</label>
                 <textarea
@@ -467,7 +468,7 @@ export default function OwnerPage() {
                   rows={3}
                 />
               </div>
-              
+
               <div className="form-group">
                 <label>Длительность (минуты) *</label>
                 <input
@@ -479,7 +480,7 @@ export default function OwnerPage() {
                   required
                 />
               </div>
-              
+
               <div className="modal-footer">
                 <button
                   type="button"
@@ -513,7 +514,7 @@ export default function OwnerPage() {
             <div className="modal-header">
               <h3>Настройка рабочих часов</h3>
             </div>
-            
+
             <form onSubmit={handleSaveWorkingHours}>
               <div className="form-group">
                 <label>Начало (HH:mm)</label>
@@ -526,7 +527,7 @@ export default function OwnerPage() {
                   required
                 />
               </div>
-              
+
               <div className="form-group">
                 <label>Окончание (HH:mm)</label>
                 <input
@@ -538,7 +539,7 @@ export default function OwnerPage() {
                   required
                 />
               </div>
-              
+
               <div className="modal-footer">
                 <button
                   type="button"
@@ -563,12 +564,12 @@ export default function OwnerPage() {
             <div className="modal-header">
               <h3>Редактировать бронирование</h3>
             </div>
-            
+
             <div className="info-block">
               <p><strong>Дата:</strong> {formatWallClock(editingBooking.startTime, 'datetime')}</p>
               <p><strong>Тип:</strong> {editingBooking.eventType.name}</p>
             </div>
-            
+
             <form onSubmit={handleUpdateBooking}>
               <div className="form-group">
                 <label>Имя клиента</label>
@@ -579,7 +580,7 @@ export default function OwnerPage() {
                   required
                 />
               </div>
-              
+
               <div className="form-group">
                 <label>Статус</label>
                 <select
@@ -590,7 +591,7 @@ export default function OwnerPage() {
                   <option value="cancelled">Отменено</option>
                 </select>
               </div>
-              
+
               <div className="modal-footer">
                 <button
                   type="button"
